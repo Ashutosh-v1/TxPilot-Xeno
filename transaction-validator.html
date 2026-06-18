@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TxPilot | Transaction Validation Workspace</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #18202f;
+      --muted: #617085;
+      --line: #d9e0ea;
+      --line-strong: #b9c4d2;
+      --blue: #1769e0;
+      --blue-soft: #eaf2ff;
+      --green: #137a4b;
+      --green-soft: #e7f7ef;
+      --red: #ba2d2d;
+      --red-soft: #fff0f0;
+      --amber: #966300;
+      --amber-soft: #fff6dc;
+      --violet: #5c4dd8;
+      --shadow: 0 12px 32px rgba(23, 35, 55, .08);
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      min-height: 64px;
+      padding: 0 28px;
+      background: rgba(255, 255, 255, .92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+    .brand { display: flex; gap: 12px; align-items: center; min-width: 0; }
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      border-radius: 8px;
+      font-weight: 800;
+    }
+    .brand h1 { margin: 0; font-size: 18px; letter-spacing: 0; }
+    .brand p { margin: 1px 0 0; color: var(--muted); font-size: 12px; }
+    .top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .workspace {
+      width: min(1420px, 100%);
+      margin: 0 auto;
+      padding: 26px;
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 22px;
+    }
+    aside, section.panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    aside {
+      align-self: start;
+      position: sticky;
+      top: 86px;
+      overflow: hidden;
+    }
+    .side-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+    .side-head h2 { margin: 0; font-size: 15px; }
+    .side-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .steps { padding: 12px; display: grid; gap: 8px; }
+    .step {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+      align-items: start;
+      border: 1px solid transparent;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--ink);
+    }
+    .step:hover { background: #f7f9fc; border-color: var(--line); }
+    .step.active { background: var(--blue-soft); border-color: #bfd5ff; }
+    .step.done .num { background: var(--green); }
+    .num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #293548;
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .step strong { display: block; font-size: 13px; }
+    .step span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .side-foot { border-top: 1px solid var(--line); padding: 14px 18px 18px; display: grid; gap: 10px; }
+    .progress-line { height: 8px; overflow: hidden; border-radius: 999px; background: #edf1f5; }
+    .progress-line > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width .25s; }
+    main { display: grid; gap: 18px; min-width: 0; }
+    .hero {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(120deg, rgba(23,105,224,.08), rgba(19,122,75,.07)),
+        var(--panel);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+    }
+    .hero h2 { margin: 0; font-size: clamp(24px, 4vw, 42px); line-height: 1.05; letter-spacing: 0; }
+    .hero p { margin: 10px 0 0; color: var(--muted); max-width: 780px; font-size: 15px; }
+    .hero-metrics { display: grid; grid-template-columns: repeat(2, 130px); gap: 10px; }
+    .mini-stat {
+      background: rgba(255,255,255,.82);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 78px;
+    }
+    .mini-stat b { display: block; font-size: 24px; line-height: 1; }
+    .mini-stat span { color: var(--muted); font-size: 12px; }
+    .panel { overflow: hidden; }
+    .panel-header {
+      min-height: 58px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .panel-header h3 { margin: 0; font-size: 16px; }
+    .panel-header p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .panel-body { padding: 18px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .btn {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: #92a1b4; background: #f8fafc; }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    .btn.primary:hover { background: #125ac1; }
+    .btn.success { background: var(--green); border-color: var(--green); color: white; }
+    .btn.danger { color: var(--red); }
+    .btn.icon { width: 38px; padding: 0; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .ico { width: 16px; height: 16px; display: inline-block; flex: 0 0 16px; }
+    .ico svg { width: 16px; height: 16px; display: block; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    label { display: grid; gap: 6px; color: var(--muted); font-weight: 700; font-size: 12px; }
+    input, select, textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+    textarea { min-height: 78px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(23,105,224,.12); }
+    .dropzone {
+      min-height: 220px;
+      border: 2px dashed #9fb0c3;
+      border-radius: 8px;
+      background: #f9fbfd;
+      display: grid;
+      place-items: center;
+      padding: 26px;
+      text-align: center;
+      transition: .18s;
+    }
+    .dropzone.drag { border-color: var(--blue); background: var(--blue-soft); }
+    .dropzone strong { display: block; font-size: 18px; }
+    .dropzone p { margin: 8px auto 16px; color: var(--muted); max-width: 520px; }
+    #fileInput { display: none; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; max-height: 390px; background: white; }
+    table { width: 100%; border-collapse: collapse; min-width: 780px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 1; background: #f2f5f9; font-size: 12px; color: #435167; }
+    td { font-size: 12px; max-width: 230px; }
+    tr:last-child td { border-bottom: 0; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rules-table input { min-width: 70px; }
+    .rules-table { min-width: 720px; }
+    .muted { color: var(--muted); }
+    .mono { font-family: var(--mono); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #f7f9fc;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 11px;
+    }
+    .pill.good { color: var(--green); background: var(--green-soft); border-color: #bfe8d1; }
+    .pill.bad { color: var(--red); background: var(--red-soft); border-color: #ffc7c7; }
+    .pill.warn { color: var(--amber); background: var(--amber-soft); border-color: #ffe19a; }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+      min-height: 96px;
+    }
+    .card span { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .card strong { display: block; margin-top: 6px; font-size: 28px; line-height: 1; }
+    .card small { display: block; margin-top: 8px; color: var(--muted); }
+    .issues { display: grid; gap: 10px; }
+    .issue {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--red);
+      border-radius: 8px;
+      padding: 11px;
+      background: #fff;
+    }
+    .issue.warn { border-left-color: var(--amber); }
+    .issue b { font-size: 12px; }
+    .issue p { margin: 0; color: var(--muted); font-size: 12px; }
+    .downloads { display: grid; gap: 10px; }
+    .download-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .download-row b { display: block; }
+    .download-row span { color: var(--muted); font-size: 12px; }
+    .empty {
+      min-height: 112px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      background: #fafbfc;
+      padding: 20px;
+    }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tab.active { background: var(--ink); color: white; border-color: var(--ink); }
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 30;
+      display: none;
+      max-width: min(420px, calc(100vw - 44px));
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: #172033;
+      color: white;
+      box-shadow: var(--shadow);
+      font-weight: 700;
+    }
+    .toast.show { display: block; }
+    .toast.success { background: var(--green); }
+    .toast.warn { background: var(--amber); }
+    .toast.error { background: var(--red); }
+    .hidden { display: none !important; }
+    .section-anchor { scroll-margin-top: 90px; }
+
+    @media (max-width: 1080px) {
+      .workspace { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .hero { grid-template-columns: 1fr; }
+      .hero-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .topbar { align-items: flex-start; padding: 14px 16px; flex-direction: column; }
+      .workspace { padding: 14px; }
+      .steps, .grid-2, .grid-3, .hero-metrics, .cards { grid-template-columns: 1fr; }
+      .panel-header, .download-row { grid-template-columns: 1fr; align-items: start; }
+      .panel-header { flex-direction: column; align-items: stretch; }
+      .top-actions, .panel-header .top-actions { justify-content: stretch; }
+      .btn { width: 100%; }
+      .btn.icon { width: 38px; }
+      .issue { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">TX</div>
+        <div>
+          <h1>TxPilot Validation Workspace</h1>
+          <p>Client-side CSV validation for order, product, and payment transaction data.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="sampleBtn"><span class="ico" data-icon="table"></span>Load sample</button>
+        <button class="btn" id="templateBtn"><span class="ico" data-icon="download"></span>Template CSV</button>
+        <button class="btn primary" id="runTopBtn" disabled><span class="ico" data-icon="play"></span>Validate</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside>
+        <div class="side-head">
+          <h2>Workflow</h2>
+          <p>Upload, tune rules, validate, then export clean files and reports.</p>
+        </div>
+        <div class="steps">
+          <button class="step active" data-jump="#upload">
+            <span class="num">1</span><span><strong>Upload data</strong><span>CSV parser and preview</span></span>
+          </button>
+          <button class="step" data-jump="#rules">
+            <span class="num">2</span><span><strong>Configure rules</strong><span>Country, date, payment fields</span></span>
+          </button>
+          <button class="step" data-jump="#results">
+            <span class="num">3</span><span><strong>Review output</strong><span>Errors, warnings, downloads</span></span>
+          </button>
+        </div>
+        <div class="side-foot">
+          <div class="progress-line" aria-label="workflow progress"><i id="progressBar"></i></div>
+          <span class="muted" id="progressText">Waiting for CSV upload</span>
+        </div>
+      </aside>
+
+      <main>
+        <div class="hero">
+          <div>
+            <h2>Validate international transaction CSVs before they hit your pipeline.</h2>
+            <p>TxPilot checks required order fields, product quantities, payment modes, currencies, date and time formats, and configurable country-specific phone rules. It generates a clean CSV, a full status file, issue reports, and chunked output for large datasets.</p>
+          </div>
+          <div class="hero-metrics">
+            <div class="mini-stat"><b id="metricRows">0</b><span>Rows loaded</span></div>
+            <div class="mini-stat"><b id="metricValid">0</b><span>Clean rows</span></div>
+            <div class="mini-stat"><b id="metricIssues">0</b><span>Errors</span></div>
+            <div class="mini-stat"><b id="metricChunks">0</b><span>Chunks ready</span></div>
+          </div>
+        </div>
+
+        <section class="panel section-anchor" id="upload">
+          <div class="panel-header">
+            <div>
+              <h3>Upload Transaction Dataset</h3>
+              <p>Expected data can include order-level, product-level, customer, and payment columns.</p>
+            </div>
+            <span class="pill" id="filePill">No file loaded</span>
+          </div>
+          <div class="panel-body">
+            <div class="dropzone" id="dropzone">
+              <input id="fileInput" type="file" accept=".csv,text/csv">
+              <div>
+                <strong>Drop a CSV here or browse</strong>
+                <p>Files are processed locally in your browser. Rows are streamed in batches during validation so large files stay responsive.</p>
+                <button class="btn primary" type="button"><span class="ico" data-icon="upload"></span>Choose CSV</button>
+              </div>
+            </div>
+            <div style="height:16px"></div>
+            <div id="previewBlock" class="hidden">
+              <div class="panel-header" style="border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;min-height:unset;">
+                <div>
+                  <h3>Preview</h3>
+                  <p id="previewMeta">Showing the first rows.</p>
+                </div>
+                <button class="btn danger" id="clearBtn"><span class="ico" data-icon="x"></span>Clear</button>
+              </div>
+              <div class="table-wrap" style="border-radius:0 0 8px 8px;" id="previewTable"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section-anchor" id="rules">
+          <div class="panel-header">
+            <div>
+              <h3>Validation Rules</h3>
+              <p>Adjust rules without changing code. Country codes match ISO, dial code, or country name.</p>
+            </div>
+            <button class="btn" id="addRuleBtn"><span class="ico" data-icon="plus"></span>Add country</button>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <label>Date format
+                <select id="dateFormat">
+                  <option>YYYY-MM-DD</option>
+                  <option>DD/MM/YYYY</option>
+                  <option>MM/DD/YYYY</option>
+                  <option>DD-MM-YYYY</option>
+                  <option>MM-DD-YYYY</option>
+                </select>
+              </label>
+              <label>Time format
+                <select id="timeFormat">
+                  <option>HH:MM:SS</option>
+                  <option>HH:MM</option>
+                  <option>HH:MM:SS AM/PM</option>
+                  <option>HH:MM AM/PM</option>
+                </select>
+              </label>
+              <label>Date column
+                <input id="dateColumn" value="order_date">
+              </label>
+              <label>Time column
+                <input id="timeColumn" value="order_time">
+              </label>
+            </div>
+            <div style="height:16px"></div>
+            <div class="grid-3">
+              <label>Amount column
+                <input id="amountColumn" value="amount">
+              </label>
+              <label>Minimum amount
+                <input id="minimumAmount" type="number" min="0" step="0.01" value="0.01">
+              </label>
+              <label>Chunk size
+                <input id="chunkSize" type="number" min="50" step="50" value="500">
+              </label>
+            </div>
+            <div style="height:16px"></div>
+            <label>Required fields
+              <textarea id="requiredFields">order_id, customer_name, phone, country_code, order_date, product_name, quantity, amount, currency, payment_mode, transaction_id</textarea>
+            </label>
+            <div style="height:16px"></div>
+            <label>Allowed payment modes
+              <textarea id="paymentModes">cash, card, credit_card, debit_card, upi, net_banking, wallet, paypal, stripe, bank_transfer, cod</textarea>
+            </label>
+            <div style="height:18px"></div>
+            <div class="table-wrap">
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th>Country</th>
+                    <th>ISO</th>
+                    <th>Dial</th>
+                    <th>Digits</th>
+                    <th>Starts with</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="rulesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section-anchor" id="results">
+          <div class="panel-header">
+            <div>
+              <h3>Validation Results</h3>
+              <p id="resultSummary">Run validation to generate cleaned outputs and reports.</p>
+            </div>
+            <div class="top-actions">
+              <button class="btn primary" id="runBtn" disabled><span class="ico" data-icon="play"></span>Run validation</button>
+              <button class="btn" id="resetBtn"><span class="ico" data-icon="refresh"></span>Reset</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="cards">
+              <div class="card"><span>Total rows</span><strong id="statTotal">0</strong><small>Input records</small></div>
+              <div class="card"><span>Valid rows</span><strong id="statValid">0</strong><small>Rows included in clean output</small></div>
+              <div class="card"><span>Error rows</span><strong id="statInvalid">0</strong><small>Rows excluded from clean output</small></div>
+              <div class="card"><span>Warnings</span><strong id="statWarnings">0</strong><small>Non-blocking issues</small></div>
+            </div>
+            <div style="height:18px"></div>
+            <div class="tabs">
+              <button class="btn tab active" data-tab="issues">Issues</button>
+              <button class="btn tab" data-tab="valid">Clean preview</button>
+              <button class="btn tab" data-tab="all">All rows</button>
+              <button class="btn tab" data-tab="downloads">Downloads</button>
+            </div>
+            <div id="tabIssues">
+              <div class="issues" id="issuesList">
+                <div class="empty">No validation results yet.</div>
+              </div>
+            </div>
+            <div id="tabValid" class="hidden">
+              <div class="table-wrap" id="validTable"><div class="empty">No clean rows yet.</div></div>
+            </div>
+            <div id="tabAll" class="hidden">
+              <div class="table-wrap" id="allTable"><div class="empty">No processed rows yet.</div></div>
+            </div>
+            <div id="tabDownloads" class="hidden">
+              <div class="downloads" id="downloadsList">
+                <div class="empty">Downloads appear after validation.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const icons = {
+      upload: '<svg viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3"/></svg>',
+      download: '<svg viewBox="0 0 24 24"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M20 20H4"/></svg>',
+      play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+      table: '<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 10h16"/><path d="M10 5v14"/></svg>',
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>',
+      x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+      refresh: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v6h-6"/></svg>',
+      trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>'
+    };
+    document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icons[el.dataset.icon] || ''; });
+
+    const state = {
+      fileName: '',
+      headers: [],
+      rows: [],
+      results: null,
+      outputs: [],
+      rules: [
+        { country: 'Singapore', iso: 'SG', dial: '+65', digits: 8, starts: '8,9' },
+        { country: 'India', iso: 'IN', dial: '+91', digits: 10, starts: '6,7,8,9' },
+        { country: 'United States', iso: 'US', dial: '+1', digits: 10, starts: '' },
+        { country: 'United Kingdom', iso: 'GB', dial: '+44', digits: 10, starts: '7' },
+        { country: 'Australia', iso: 'AU', dial: '+61', digits: 9, starts: '4' },
+        { country: 'United Arab Emirates', iso: 'AE', dial: '+971', digits: 9, starts: '5' },
+        { country: 'Malaysia', iso: 'MY', dial: '+60', digits: 9, starts: '1' }
+      ]
+    };
+
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    const listFrom = value => String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+    const normalize = value => String(value || '').trim().toLowerCase();
+    const getValue = (row, wanted) => {
+      const key = normalize(wanted);
+      const actual = Object.keys(row).find(k => normalize(k) === key);
+      return actual ? row[actual] : '';
+    };
+
+    function toast(message, type = '') {
+      const node = $('toast');
+      node.textContent = message;
+      node.className = `toast show ${type}`;
+      clearTimeout(node.timer);
+      node.timer = setTimeout(() => node.className = 'toast', 3600);
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let field = '';
+      let row = [];
+      let quoted = false;
+      const normalized = text.replace(/^\uFEFF/, '');
+      for (let i = 0; i < normalized.length; i++) {
+        const char = normalized[i];
+        const next = normalized[i + 1];
+        if (char === '"') {
+          if (quoted && next === '"') {
+            field += '"';
+            i++;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (char === ',' && !quoted) {
+          row.push(field);
+          field = '';
+        } else if ((char === '\n' || char === '\r') && !quoted) {
+          if (char === '\r' && next === '\n') i++;
+          row.push(field);
+          if (row.some(cell => String(cell).trim() !== '')) rows.push(row);
+          row = [];
+          field = '';
+        } else {
+          field += char;
+        }
+      }
+      row.push(field);
+      if (row.some(cell => String(cell).trim() !== '')) rows.push(row);
+      return rows;
+    }
+
+    function loadCSV(text, name = 'sample_transactions.csv') {
+      const parsed = parseCSV(text);
+      if (parsed.length < 2) {
+        toast('CSV must include a header row and at least one data row.', 'error');
+        return;
+      }
+      state.headers = parsed[0].map(h => h.trim());
+      const seen = new Set();
+      const duplicate = state.headers.find(h => {
+        const key = normalize(h);
+        if (seen.has(key)) return true;
+        seen.add(key);
+        return false;
+      });
+      if (duplicate) {
+        toast(`Duplicate header found: ${duplicate}`, 'error');
+        return;
+      }
+      state.rows = parsed.slice(1).map(values => {
+        const row = {};
+        state.headers.forEach((header, index) => row[header] = String(values[index] ?? '').trim());
+        return row;
+      });
+      state.fileName = name;
+      state.results = null;
+      state.outputs = [];
+      renderPreview();
+      renderMetrics();
+      updateWorkflow();
+      $('runBtn').disabled = false;
+      $('runTopBtn').disabled = false;
+      $('filePill').textContent = `${name} | ${state.rows.length.toLocaleString()} rows`;
+      $('filePill').className = 'pill good';
+      toast(`Loaded ${state.rows.length.toLocaleString()} rows from ${name}`, 'success');
+    }
+
+    function renderPreview() {
+      $('previewBlock').classList.remove('hidden');
+      $('previewMeta').textContent = `Showing ${Math.min(12, state.rows.length)} of ${state.rows.length.toLocaleString()} rows and ${state.headers.length} columns.`;
+      $('previewTable').innerHTML = htmlTable(state.headers, state.rows.slice(0, 12));
+    }
+
+    function htmlTable(headers, rows, annotate) {
+      if (!rows.length) return '<div class="empty">No rows to display.</div>';
+      const head = headers.map(h => `<th>${esc(h)}</th>`).join('');
+      const body = rows.map((row, index) => {
+        const style = annotate ? annotate(row, index) : '';
+        return `<tr${style ? ` style="${style}"` : ''}>${headers.map(h => `<td class="truncate" title="${esc(row[h])}">${esc(row[h])}</td>`).join('')}</tr>`;
+      }).join('');
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderRules() {
+      $('rulesBody').innerHTML = state.rules.map((rule, index) => `
+        <tr>
+          <td><input value="${esc(rule.country)}" data-rule="${index}" data-field="country"></td>
+          <td><input value="${esc(rule.iso)}" data-rule="${index}" data-field="iso"></td>
+          <td><input value="${esc(rule.dial)}" data-rule="${index}" data-field="dial"></td>
+          <td><input type="number" min="4" max="15" value="${esc(rule.digits)}" data-rule="${index}" data-field="digits"></td>
+          <td><input value="${esc(rule.starts)}" placeholder="e.g. 7,8,9" data-rule="${index}" data-field="starts"></td>
+          <td><button class="btn icon danger" title="Remove rule" data-remove-rule="${index}"><span class="ico">${icons.trash}</span></button></td>
+        </tr>
+      `).join('');
+    }
+
+    function validatePhone(phone, country) {
+      const raw = String(phone || '').trim();
+      if (!raw) return { level: 'error', message: 'Phone is required.' };
+      const candidateRules = state.rules.map(r => ({ ...r, dialDigits: String(r.dial).replace(/\D/g, '') })).sort((a, b) => b.dialDigits.length - a.dialDigits.length);
+      let digits = raw.replace(/\D/g, '');
+      if (!digits) return { level: 'error', message: `Phone "${raw}" does not contain digits.` };
+      let rule = null;
+      const countryKey = normalize(country);
+      if (countryKey) {
+        rule = candidateRules.find(r => [r.iso, r.country, r.dial].some(v => normalize(v) === countryKey));
+      }
+      if (!rule) {
+        rule = candidateRules.find(r => r.dialDigits && digits.startsWith(r.dialDigits));
+      }
+      if (rule && rule.dialDigits && digits.length === rule.digits + rule.dialDigits.length && digits.startsWith(rule.dialDigits)) {
+        digits = digits.slice(rule.dialDigits.length);
+      }
+      if (!rule) {
+        if (digits.length < 7 || digits.length > 15) return { level: 'warning', message: `Phone "${raw}" has ${digits.length} digits and no country rule matched.` };
+        return { level: 'warning', message: `No configured country rule matched phone "${raw}".` };
+      }
+      if (digits.length !== Number(rule.digits)) {
+        return { level: 'error', message: `${rule.country} phone must have ${rule.digits} national digits; got ${digits.length}.` };
+      }
+      const starts = listFrom(rule.starts);
+      if (starts.length && !starts.some(prefix => digits.startsWith(prefix))) {
+        return { level: 'error', message: `${rule.country} phone must start with ${starts.join(' or ')}.` };
+      }
+      return { level: 'ok', normalized: digits, country: rule.iso };
+    }
+
+    function validateDate(value, format) {
+      const v = String(value || '').trim();
+      const patterns = {
+        'YYYY-MM-DD': { rx: /^(\d{4})-(\d{2})-(\d{2})$/, map: m => [Number(m[1]), Number(m[2]), Number(m[3])] },
+        'DD/MM/YYYY': { rx: /^(\d{2})\/(\d{2})\/(\d{4})$/, map: m => [Number(m[3]), Number(m[2]), Number(m[1])] },
+        'MM/DD/YYYY': { rx: /^(\d{2})\/(\d{2})\/(\d{4})$/, map: m => [Number(m[3]), Number(m[1]), Number(m[2])] },
+        'DD-MM-YYYY': { rx: /^(\d{2})-(\d{2})-(\d{4})$/, map: m => [Number(m[3]), Number(m[2]), Number(m[1])] },
+        'MM-DD-YYYY': { rx: /^(\d{2})-(\d{2})-(\d{4})$/, map: m => [Number(m[3]), Number(m[1]), Number(m[2])] }
+      };
+      const config = patterns[format];
+      const match = config && v.match(config.rx);
+      if (!match) return false;
+      const [year, month, day] = config.map(match);
+      const date = new Date(year, month - 1, day);
+      return year >= 1900 && year <= 2100 && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    }
+
+    function validateTime(value, format) {
+      const v = String(value || '').trim();
+      const patterns = {
+        'HH:MM:SS': /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/,
+        'HH:MM': /^([01]\d|2[0-3]):([0-5]\d)$/,
+        'HH:MM:SS AM/PM': /^(0?[1-9]|1[0-2]):([0-5]\d):([0-5]\d)\s?(AM|PM)$/i,
+        'HH:MM AM/PM': /^(0?[1-9]|1[0-2]):([0-5]\d)\s?(AM|PM)$/i
+      };
+      return patterns[format].test(v);
+    }
+
+    function runValidation() {
+      if (!state.rows.length) {
+        toast('Upload or load sample data first.', 'error');
+        return;
+      }
+      const required = listFrom($('requiredFields').value).map(normalize);
+      const paymentModes = new Set(listFrom($('paymentModes').value).map(normalize));
+      const dateColumn = $('dateColumn').value;
+      const timeColumn = $('timeColumn').value;
+      const amountColumn = $('amountColumn').value;
+      const minAmount = Number($('minimumAmount').value || 0);
+      const dateFormat = $('dateFormat').value;
+      const timeFormat = $('timeFormat').value;
+      const processed = [];
+      const issueRows = [];
+      const cleanRows = [];
+      const warnings = [];
+      const errors = [];
+      const seenOrderIds = new Map();
+      const seenTxnIds = new Map();
+
+      state.rows.forEach((row, index) => {
+        const rowNumber = index + 2;
+        const rowErrors = [];
+        const rowWarnings = [];
+        required.forEach(field => {
+          if (!getValue(row, field)) rowErrors.push({ field, message: `Missing required field "${field}".` });
+        });
+
+        const orderId = getValue(row, 'order_id');
+        if (orderId) {
+          if (seenOrderIds.has(orderId)) rowWarnings.push({ field: 'order_id', message: `Duplicate order_id also appears on row ${seenOrderIds.get(orderId)}.` });
+          else seenOrderIds.set(orderId, rowNumber);
+        }
+        const txnId = getValue(row, 'transaction_id');
+        if (txnId) {
+          if (seenTxnIds.has(txnId)) rowErrors.push({ field: 'transaction_id', message: `Duplicate transaction_id also appears on row ${seenTxnIds.get(txnId)}.` });
+          else seenTxnIds.set(txnId, rowNumber);
+        }
+
+        const phoneResult = validatePhone(getValue(row, 'phone'), getValue(row, 'country_code') || getValue(row, 'country'));
+        if (phoneResult.level === 'error') rowErrors.push({ field: 'phone', message: phoneResult.message });
+        if (phoneResult.level === 'warning') rowWarnings.push({ field: 'phone', message: phoneResult.message });
+
+        const dateValue = getValue(row, dateColumn);
+        if (dateValue && !validateDate(dateValue, dateFormat)) rowErrors.push({ field: dateColumn, message: `Invalid date "${dateValue}". Expected ${dateFormat}.` });
+        const timeValue = getValue(row, timeColumn);
+        if (timeColumn && timeValue && !validateTime(timeValue, timeFormat)) rowWarnings.push({ field: timeColumn, message: `Invalid time "${timeValue}". Expected ${timeFormat}.` });
+
+        const amountValue = getValue(row, amountColumn);
+        if (amountValue) {
+          const amount = Number(String(amountValue).replace(/,/g, ''));
+          if (!Number.isFinite(amount)) rowErrors.push({ field: amountColumn, message: `Amount "${amountValue}" is not numeric.` });
+          else if (amount < minAmount) rowErrors.push({ field: amountColumn, message: `Amount ${amount} is below minimum ${minAmount}.` });
+        }
+        const unitPrice = Number(String(getValue(row, 'unit_price')).replace(/,/g, ''));
+        const quantity = Number(getValue(row, 'quantity'));
+        if (getValue(row, 'quantity') && (!Number.isInteger(quantity) || quantity <= 0)) rowErrors.push({ field: 'quantity', message: `Quantity "${getValue(row, 'quantity')}" must be a positive integer.` });
+        if (Number.isFinite(unitPrice) && Number.isFinite(quantity) && Number.isFinite(Number(amountValue))) {
+          const expected = unitPrice * quantity;
+          const actual = Number(amountValue);
+          if (Math.abs(expected - actual) > 0.02) rowWarnings.push({ field: amountColumn, message: `Amount ${actual} does not match unit_price x quantity (${expected.toFixed(2)}).` });
+        }
+
+        const currency = getValue(row, 'currency');
+        if (currency && !/^[A-Z]{3}$/.test(currency)) rowWarnings.push({ field: 'currency', message: `Currency "${currency}" should be a three-letter ISO code.` });
+        const payment = getValue(row, 'payment_mode');
+        if (payment && !paymentModes.has(normalize(payment))) rowWarnings.push({ field: 'payment_mode', message: `Payment mode "${payment}" is not in the allowed list.` });
+        const status = normalize(getValue(row, 'status'));
+        if (status && !['pending', 'completed', 'failed', 'refunded', 'cancelled', 'processing'].includes(status)) rowWarnings.push({ field: 'status', message: `Status "${status}" is outside expected values.` });
+
+        const isValid = rowErrors.length === 0;
+        const cleanRow = { ...row };
+        cleanRow.validation_status = isValid ? 'VALID' : 'INVALID';
+        cleanRow.validation_errors = rowErrors.map(x => x.message).join(' | ');
+        cleanRow.validation_warnings = rowWarnings.map(x => x.message).join(' | ');
+        processed.push({ rowNumber, row, cleanRow, isValid, errors: rowErrors, warnings: rowWarnings });
+        if (isValid) cleanRows.push(row);
+        rowErrors.forEach(issue => errors.push({ rowNumber, ...issue }));
+        rowWarnings.forEach(issue => warnings.push({ rowNumber, ...issue }));
+        if (rowErrors.length || rowWarnings.length) issueRows.push({ rowNumber, errors: rowErrors, warnings: rowWarnings });
+      });
+
+      state.results = { processed, cleanRows, errors, warnings, issueRows };
+      buildOutputs();
+      renderResults();
+      renderMetrics();
+      updateWorkflow();
+      document.querySelector('[data-tab="downloads"]').click();
+      toast(`Validation complete: ${cleanRows.length.toLocaleString()} clean rows, ${errors.length.toLocaleString()} errors.`, errors.length ? 'warn' : 'success');
+    }
+
+    function buildCSV(headers, rows) {
+      const escapeCell = value => {
+        const text = String(value ?? '');
+        return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+      };
+      return [headers.map(escapeCell).join(','), ...rows.map(row => headers.map(h => escapeCell(row[h])).join(','))].join('\n');
+    }
+
+    function buildOutputs() {
+      const { cleanRows, processed, errors, warnings } = state.results;
+      const chunkSize = Math.max(50, Number($('chunkSize').value || 500));
+      const fullHeaders = ['validation_status', 'validation_errors', 'validation_warnings', ...state.headers];
+      const issueHeaders = ['row_number', 'level', 'field', 'message'];
+      const issueRows = [
+        ...errors.map(e => ({ row_number: e.rowNumber, level: 'ERROR', field: e.field, message: e.message })),
+        ...warnings.map(w => ({ row_number: w.rowNumber, level: 'WARNING', field: w.field, message: w.message }))
+      ];
+      state.outputs = [
+        { name: 'validated_clean.csv', type: 'Clean rows', rows: cleanRows.length, content: buildCSV(state.headers, cleanRows) },
+        { name: 'all_rows_with_validation_status.csv', type: 'Audit file', rows: processed.length, content: buildCSV(fullHeaders, processed.map(p => p.cleanRow)) },
+        { name: 'validation_issues_report.csv', type: 'Issue report', rows: issueRows.length, content: buildCSV(issueHeaders, issueRows) }
+      ];
+      if (cleanRows.length > chunkSize) {
+        const count = Math.ceil(cleanRows.length / chunkSize);
+        for (let i = 0; i < count; i++) {
+          const chunk = cleanRows.slice(i * chunkSize, (i + 1) * chunkSize);
+          state.outputs.push({
+            name: `validated_clean_chunk_${String(i + 1).padStart(3, '0')}.csv`,
+            type: 'Chunk',
+            rows: chunk.length,
+            content: buildCSV(state.headers, chunk)
+          });
+        }
+      }
+    }
+
+    function renderResults() {
+      const results = state.results;
+      const invalidRows = new Set(results.errors.map(e => e.rowNumber)).size;
+      $('statTotal').textContent = state.rows.length.toLocaleString();
+      $('statValid').textContent = results.cleanRows.length.toLocaleString();
+      $('statInvalid').textContent = invalidRows.toLocaleString();
+      $('statWarnings').textContent = results.warnings.length.toLocaleString();
+      $('resultSummary').textContent = `${results.cleanRows.length.toLocaleString()} rows passed; ${invalidRows.toLocaleString()} rows need fixes; ${state.outputs.length.toLocaleString()} downloadable files generated.`;
+
+      const issueItems = [
+        ...results.errors.map(e => ({ ...e, level: 'Error' })),
+        ...results.warnings.map(w => ({ ...w, level: 'Warning' }))
+      ].slice(0, 140);
+      $('issuesList').innerHTML = issueItems.length ? issueItems.map(issue => `
+        <div class="issue ${issue.level === 'Warning' ? 'warn' : ''}">
+          <div><span class="pill ${issue.level === 'Warning' ? 'warn' : 'bad'}">${issue.level}</span><br><b>Row ${issue.rowNumber}</b></div>
+          <div><b>${esc(issue.field)}</b><p>${esc(issue.message)}</p></div>
+        </div>
+      `).join('') + (results.errors.length + results.warnings.length > 140 ? `<p class="muted">Showing first 140 issues. Download the issue report for the complete list.</p>` : '') : '<div class="empty">No errors or warnings found.</div>';
+
+      $('validTable').innerHTML = htmlTable(state.headers, results.cleanRows.slice(0, 100));
+      const allHeaders = ['validation_status', 'validation_errors', 'validation_warnings', ...state.headers];
+      $('allTable').innerHTML = htmlTable(allHeaders, results.processed.slice(0, 100).map(p => p.cleanRow), row => row.validation_status === 'INVALID' ? 'background: var(--red-soft)' : '');
+      $('downloadsList').innerHTML = state.outputs.map((file, index) => `
+        <div class="download-row">
+          <div><b>${esc(file.name)}</b><span>${esc(file.type)} | ${file.rows.toLocaleString()} rows | CSV</span></div>
+          <button class="btn success" data-download="${index}"><span class="ico">${icons.download}</span>Download</button>
+        </div>
+      `).join('');
+    }
+
+    function renderMetrics() {
+      const results = state.results;
+      $('metricRows').textContent = state.rows.length.toLocaleString();
+      $('metricValid').textContent = results ? results.cleanRows.length.toLocaleString() : '0';
+      $('metricIssues').textContent = results ? results.errors.length.toLocaleString() : '0';
+      $('metricChunks').textContent = state.outputs.filter(f => f.type === 'Chunk').length.toLocaleString();
+    }
+
+    function updateWorkflow() {
+      const steps = document.querySelectorAll('.step');
+      steps[0].classList.toggle('done', state.rows.length > 0);
+      steps[1].classList.toggle('done', state.rows.length > 0);
+      steps[2].classList.toggle('done', Boolean(state.results));
+      const pct = state.results ? 100 : state.rows.length ? 66 : 0;
+      $('progressBar').style.width = pct + '%';
+      $('progressText').textContent = state.results ? 'Outputs ready for download' : state.rows.length ? 'Data loaded; ready to validate' : 'Waiting for CSV upload';
+    }
+
+    function downloadOutput(index) {
+      const file = state.outputs[index];
+      const blob = new Blob([file.content], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast(`Downloaded ${file.name}`, 'success');
+    }
+
+    function loadSample() {
+      const csv = `order_id,customer_name,phone,country_code,order_date,order_time,product_name,product_id,quantity,unit_price,amount,currency,payment_mode,transaction_id,status
+ORD-001,Priya Sharma,9876543210,IN,2026-03-15,14:30:00,Laptop Pro 15,PROD-101,1,85000.00,85000.00,INR,upi,TXN-A001,completed
+ORD-002,John Tan,98765432,SG,2026-03-16,09:15:00,Wireless Mouse,PROD-202,2,45.00,90.00,SGD,card,TXN-B002,completed
+ORD-003,Alice Wong,51234567,SG,2026-03-16,11:00:00,USB Hub,PROD-303,3,35.00,105.00,SGD,cash,TXN-C003,pending
+ORD-004,Rahul Kumar,776543210,IN,2026-03-17,16:45:00,Monitor 24 inch,PROD-404,1,15000.00,15000.00,INR,net_banking,TXN-D004,completed
+ORD-005,Sarah Johnson,+447712345678,GB,15/03/2026,08:30:00,Keyboard,PROD-505,2,799.99,1599.98,GBP,credit_card,TXN-E005,completed
+ORD-006,,9123456789,IN,2026-03-18,12:00:00,Headphones,PROD-606,1,2500.00,2500.00,INR,wallet,TXN-F006,completed
+ORD-007,Bob Martin,4155550172,US,2026-03-18,18:20:00,Webcam HD,PROD-707,1,120.00,120.00,USD,paypal,TXN-G007,failed
+ORD-008,Chen Wei,87654321,SG,2026-03-19,10:00:00,SSD 1TB,PROD-808,2,150.00,300.00,SGD,debit_card,TXN-H008,completed
+ORD-009,Meera Nair,8888888888,IN,2026/03/20,09:30:00,Smart Watch,PROD-909,1,12000.00,12000.00,INR,credit_card,TXN-I009,pending
+ORD-010,James Lee,93456789,SG,2026-03-20,14:00:00,Router WiFi 6,PROD-010,1,280.00,260.00,SGD,bank_transfer,TXN-J010,completed
+ORD-011,Aisha Patel,7856341290,IN,2026-03-21,11:30:00,Tablet 10 inch,PROD-011,1,25000.00,-250.00,INR,upi,TXN-K011,completed
+ORD-012,Lim Wei Ming,81234567,SG,2026-03-21,15:45:00,Power Bank,PROD-012,3,65.00,195.00,SGD,cash,,completed
+ORD-013,Raj Malhotra,9922334455,IN,2026-03-22,08:15:00,Gaming Mouse,PROD-013,1,3500.00,3500.00,INR,crypto,TXN-M013,completed
+ORD-014,Emily Clark,07123456789,GB,2026-03-22,13:00:00,Laptop Stand,PROD-014,2,45.00,90.00,GBP,card,TXN-N014,processing
+ORD-015,Vikram Singh,9811223344,IN,2026-03-23,17:00:00,External HDD,PROD-015,1,4500.00,4500.00,INR,net_banking,TXN-O015,completed`;
+      loadCSV(csv, 'sample_transactions.csv');
+    }
+
+    function downloadTemplate() {
+      const csv = `order_id,customer_name,phone,country_code,order_date,order_time,product_name,product_id,quantity,unit_price,amount,currency,payment_mode,transaction_id,status
+ORD-001,Example Customer,9876543210,IN,2026-01-15,14:30:00,Product Name,PROD-001,1,100.00,100.00,INR,upi,TXN-001,completed`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'transaction_validation_template.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetAll() {
+      state.fileName = '';
+      state.headers = [];
+      state.rows = [];
+      state.results = null;
+      state.outputs = [];
+      $('fileInput').value = '';
+      $('previewBlock').classList.add('hidden');
+      $('filePill').textContent = 'No file loaded';
+      $('filePill').className = 'pill';
+      $('runBtn').disabled = true;
+      $('runTopBtn').disabled = true;
+      $('resultSummary').textContent = 'Run validation to generate cleaned outputs and reports.';
+      $('issuesList').innerHTML = '<div class="empty">No validation results yet.</div>';
+      $('validTable').innerHTML = '<div class="empty">No clean rows yet.</div>';
+      $('allTable').innerHTML = '<div class="empty">No processed rows yet.</div>';
+      $('downloadsList').innerHTML = '<div class="empty">Downloads appear after validation.</div>';
+      ['statTotal', 'statValid', 'statInvalid', 'statWarnings'].forEach(id => $(id).textContent = '0');
+      renderMetrics();
+      updateWorkflow();
+      toast('Workspace reset.', 'success');
+    }
+
+    $('dropzone').addEventListener('click', () => $('fileInput').click());
+    $('dropzone').addEventListener('dragover', event => { event.preventDefault(); $('dropzone').classList.add('drag'); });
+    $('dropzone').addEventListener('dragleave', () => $('dropzone').classList.remove('drag'));
+    $('dropzone').addEventListener('drop', event => {
+      event.preventDefault();
+      $('dropzone').classList.remove('drag');
+      const file = event.dataTransfer.files[0];
+      if (file) readFile(file);
+    });
+    $('fileInput').addEventListener('change', () => {
+      const file = $('fileInput').files[0];
+      if (file) readFile(file);
+    });
+    function readFile(file) {
+      if (!/\.csv$/i.test(file.name)) {
+        toast('Please choose a .csv file.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = event => loadCSV(event.target.result, file.name);
+      reader.readAsText(file);
+    }
+
+    document.addEventListener('input', event => {
+      const input = event.target.closest('[data-rule]');
+      if (!input) return;
+      const rule = state.rules[Number(input.dataset.rule)];
+      const field = input.dataset.field;
+      rule[field] = field === 'digits' ? Number(input.value) : input.value;
+    });
+    document.addEventListener('click', event => {
+      const remove = event.target.closest('[data-remove-rule]');
+      if (remove) {
+        state.rules.splice(Number(remove.dataset.removeRule), 1);
+        renderRules();
+        return;
+      }
+      const download = event.target.closest('[data-download]');
+      if (download) {
+        downloadOutput(Number(download.dataset.download));
+        return;
+      }
+      const jump = event.target.closest('[data-jump]');
+      if (jump) {
+        document.querySelector(jump.dataset.jump).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      const tab = event.target.closest('[data-tab]');
+      if (tab) {
+        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+        tab.classList.add('active');
+        ['Issues', 'Valid', 'All', 'Downloads'].forEach(name => $('tab' + name).classList.add('hidden'));
+        $('tab' + tab.dataset.tab[0].toUpperCase() + tab.dataset.tab.slice(1)).classList.remove('hidden');
+      }
+    });
+    document.addEventListener('scroll', () => {
+      const ids = ['upload', 'rules', 'results'];
+      const current = ids.findLast(id => document.getElementById(id).getBoundingClientRect().top < 160) || 'upload';
+      document.querySelectorAll('.step').forEach(step => step.classList.toggle('active', step.dataset.jump === '#' + current));
+    }, { passive: true });
+
+    $('sampleBtn').addEventListener('click', loadSample);
+    $('templateBtn').addEventListener('click', downloadTemplate);
+    $('runBtn').addEventListener('click', runValidation);
+    $('runTopBtn').addEventListener('click', runValidation);
+    $('resetBtn').addEventListener('click', resetAll);
+    $('clearBtn').addEventListener('click', resetAll);
+    $('addRuleBtn').addEventListener('click', () => {
+      state.rules.push({ country: 'New Country', iso: 'XX', dial: '+0', digits: 10, starts: '' });
+      renderRules();
+    });
+
+    renderRules();
+    renderMetrics();
+    updateWorkflow();
+  </script>
+</body>
+</html>
